@@ -1,64 +1,204 @@
-I built a multithreaded robotics-style data pipeline in Python: a sensor thread produces IMU and GPS-like data, an EKF worker thread performs prediction and update to estimate 2D pose and velocity, and a TCP publisher thread broadcasts odometry to multiple clients using a newline-delimited JSON protocol. The system supports backpressure via bounded queues and clean shutdown with Ctrl+C.
+# Python Robotics Stack Demo
 
-✅ Windows 运行方式（一步到位）
+A multithreaded robotics-style data processing pipeline implemented in Python.
 
-打开 PowerShell：
+This project demonstrates:
 
-cd D:\projects
-mkdir robot_stack_demo
-cd robot_stack_demo
-# 把以上文件按名称创建并粘贴
+- Multithreaded sensor simulation (IMU + GPS)
+- Extended Kalman Filter (EKF) for state estimation
+- Real-time data fusion
+- TCP-based odometry broadcasting (JSON protocol)
+- Embedded/robot-inspired software architecture
+
+---
+
+## System Architecture
+
+```
+Sensor Thread
+   ├── IMU (50 Hz)
+   ├── GPS (5 Hz)
+        ↓
+EKF Worker Thread
+   ├── Prediction (IMU)
+   ├── Update (GPS)
+        ↓
+TCP Publisher Thread
+   ├── Multi-client broadcast
+   ├── JSON line protocol
+```
+
+This design mimics real robotics middleware systems:
+
+- Producer → Processing → Publisher
+- Thread-safe queues
+- Bounded buffers
+- Graceful shutdown
+
+---
+
+## Features
+
+- 2D Extended Kalman Filter (state: px, py, vx, vy)
+- Separate prediction and update steps
+- Covariance propagation
+- Multi-client TCP streaming
+- JSON line-delimited protocol
+- Clean Ctrl+C shutdown handling
+
+---
+
+## Tech Stack
+
+- Python 3.10+
+- threading
+- queue
+- numpy
+- socket
+
+---
+
+## Project Structure
+
+```
+robot_stack_demo/
+│
+├── app.py              # Entry point
+├── ekf.py              # EKF implementation
+├── pipeline.py         # Sensor simulator (IMU + GPS)
+├── tcp_pub.py          # TCP odometry broadcaster
+├── client_test.py      # TCP client demo
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Installation (Windows)
+
+```bash
+git clone https://github.com/yitingHH-bit/python_projects.git
+cd python_projects
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
 
-# 终端1：启动系统
+---
+
+## Run the System
+
+### Terminal 1
+
+```bash
 python app.py
+```
 
+You will see EKF pose estimation output like:
 
-[ekf] px= 111.75 py=  39.94 vx=  1.86 vy=  1.47
-[ekf] px= 114.25 py=  40.31 vx=  2.06 vy= -0.06
-[ekf] px= 115.83 py=  42.48 vx=  1.37 vy=  1.03
-[ekf] px= 117.18 py=  44.35 vx=  1.40 vy=  0.08
-[ekf] px= 118.09 py=  45.26 vx= -0.03 vy=  1.26
-[ekf] px= 120.92 py=  46.44 vx=  3.31 vy=  0.54
-[ekf] px= 122.56 py=  46.50 vx=  2.50 vy=  0.88
+```
+[ekf] px=  12.34 py=  -5.67 vx= 1.23 vy= 0.98
+```
 
-再开一个 PowerShell（终端2）：
+### Terminal 2 (Optional - TCP Client)
 
-cd D:\projects\robot_stack_demo
-.\.venv\Scripts\Activate.ps1
+```bash
 python client_test.py
+```
 
-你会看到客户端不断收到：
+Example output:
 
-{"ts":..., "px":..., "py":..., "vx":..., "vy":...}
+```json
+{"ts": 1720000000.123, "px": 10.5, "py": -2.3, "vx": 1.1, "vy": 0.9}
+```
 
- 
-PS D:\course\C++\python> cd .\python_projects\
-PS D:\course\C++\python\python_projects> python client_test.py
-[client] connected, receiving lines...
-{"type":"hello"}
-{"ts": 1772231806.2284498, "px": 83.30574161853082, "py": 29.72352356076173, "vx": 1.9815941108232158, "vy": 1.1396828902821239}
-{"ts": 1772231806.3273199, "px": 83.50013618144253, "py": 29.83679898213562, "vx": 1.9528927746900062, "vy": 1.1494054933071067}
-{"ts": 1772231806.4271693, "px": 84.43310656692671, "py": 29.929490465981093, "vx": 3.025260250988534, "vy": 1.1020266940658119}
-{"ts": 1772231806.527106, "px": 84.73402219316277, "py": 30.03860305283792, "vx": 3.00389018922165, "vy": 1.0869908503718313}
-{"ts": 1772231806.6273735, "px": 85.22050023456883, "py": 30.614468207526908, "vx": 3.262367495614685, "vy": 1.7714555605004607}
-{"ts": 1772231806.727309, "px": 85.54505522531227, "py": 30.79093712046134, "vx": 3.237793919305866, "vy": 1.7616146431991113}
-{"ts": 1772231806.8270292, "px": 85.21289030487118, "py": 31.49147206133862, "vx": 2.235708844032907, "vy": 2.5432554872852444}
-{"ts": 1772231806.9273374, "px": 85.43568149140299, "py": 31.746294509181304, "vx": 2.2008510855638495, "vy": 2.5353585931165306}
-{"ts": 1772231807.0271966, "px": 83.61465195563605, "py": 30.831135286349113, "vx": -0.8693921315427103, "vy": 0.7971977340371476}
-{"ts": 1772231807.1268299, "px": 83.5273191050156, "py": 30.90976423620699, "vx": -0.8873862328974238, "vy": 0.7842874715599405}
-{"ts": 1772231807.2270982, "px": 83.58352425760607, "py": 30.099631720426988, "vx": -0.6965850956074453, "vy": -0.549311175981893}
-{"ts": 1772231807.3271642, "px": 83.5119512141358, "py": 30.043740857684078, "vx": -0.7320273258741461, "vy": -0.5755447839982106}
-{"ts": 1772231807.427216, "px": 83.71576675760534, "py": 30.8918183149009, "vx": -0.33552423656426156, "vy": 0.7608938283071702}
-{"ts": 1772231807.5272214, "px": 83.68111049206398, "py": 30.967094619489128, "vx": -0.3553910043665367, "vy": 0.74738790497519}
-{"ts": 1772231807.6268346, "px": 82.56176264529904, "py": 31.180319080312866, "vx": -2.007149201495624, "vy": 0.9359665796071079}
-{"ts": 1772231807.727235, "px": 82.35966348395026, "py": 31.273455071690684, "vx": -2.022449248868149, "vy": 0.9199021121327181}
-{"ts": 1772231807.8269744, "px": 83.90619435258841, "py": 32.08201440729459, "vx": 0.5457864311153248, "vy": 1.9769088631547687}
-{"ts": 1772231807.927174, "px": 83.959809648222, "py": 32.27870863320715, "vx": 0.5224997029041474, "vy": 1.9431325035375537}
-{"ts": 1772231808.0270293, "px": 85.75025904236432, "py": 32.27500532779633, "vx": 3.0890095438929412, "vy": 1.6326355909471941}
-{"ts": 1772231808.1269748, "px": 86.05797086919632, "py": 32.43785632201717, "vx": 3.0704157901432563, "vy": 1.6202122173969378}
-{"ts": 1772231808.2269826, "px": 85.51034612578061, "py": 33.03182367519463, "vx": 1.7778165763565543, "vy": 2.2438340629049667}
-PS D:\course\C++\python\python_projects> 
+---
+
+## EKF Model
+
+State vector:
+
+```
+x = [px, py, vx, vy]
+```
+
+Prediction step:
+
+```
+x_k = f(x_{k-1}, a_k)
+P_k = F P F^T + Q
+```
+
+Update step (GPS):
+
+```
+K = P H^T (H P H^T + R)^-1
+x = x + K(y)
+P = (I - K H)P
+```
+
+IMU provides high-frequency prediction.
+GPS provides lower-frequency correction.
+
+---
+
+## Communication Protocol
+
+JSON newline-delimited format:
+
+```json
+{
+  "ts": 123.456,
+  "px": 1.0,
+  "py": 2.0,
+  "vx": 0.1,
+  "vy": 0.2
+}
+```
+
+This protocol allows:
+
+- Easy debugging
+- Cross-language compatibility
+- Integration with external systems
+
+---
+
+## Robotics Relevance
+
+This project demonstrates concepts commonly used in:
+
+- Mobile robotics
+- Autonomous vehicles
+- Robot localization
+- ROS-like middleware systems
+- Embedded real-time systems
+- Multi-sensor data fusion
+
+---
+
+## Possible Extensions
+
+- Add orientation (yaw, quaternion)
+- Publish covariance matrix
+- Integrate LiDAR
+- Switch to UDP/DDS-style communication
+- Add logging module
+- Containerize with Docker
+
+---
+
+## Engineering Highlights
+
+- Thread-safe shared state
+- Bounded queue for backpressure
+- Separation of concerns
+- Modular architecture
+- Scalable publisher design
+
+---
+
+## License
+
+For educational and demonstration purposes.
